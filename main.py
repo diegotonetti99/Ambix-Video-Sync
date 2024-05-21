@@ -1,5 +1,5 @@
 '''
-    This program merges together amibsonics audio and 360 video self aliging the external audio track on the video audio track using cross correlation. 
+    This program merges together ambisonics audio and 360 video self aliging the external audio track on the video audio track using cross correlation. 
 
     The external audio truck MUST BE LONGER than the video track, so start recording the external audio, than video, than stop video and finally stop recording the external audio.
 
