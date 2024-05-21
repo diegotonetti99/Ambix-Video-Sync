@@ -1,0 +1,86 @@
+'''
+    This program merges together amibsonics audio and 360 video self aliging the external audio track on the video audio track using cross correlation. 
+
+    The external audio truck MUST BE LONGER than the video track, so start recording the external audio, than video, than stop video and finally stop recording the external audio.
+
+    This program requires ffmpeg installed in the host machine.
+
+    The resulting video is not recognized as 360video+ambisonics as it needs metadata that must be injected with another program like https://github.com/google/spatial-media/.
+
+'''
+
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import signal, io
+import librosa
+import subprocess
+
+input_video = 'video.mp4'
+input_ambix = 'ambisonics.wav'
+output_video = 'output.mov'
+
+# temporary file - no need to edit
+video_audio = 'video_audio.wav'
+trimmed_ambix = 'trimmed_ambix.wav'
+
+# Command to extract audio track
+command = [
+    'ffmpeg',
+    '-i', input_video,        # Input video file
+    '-q:a', '0',             # Set audio quality to highest
+    '-map', '0:a:0',         # Select the audio stream from the input file
+    '-vn',                   # Disable the video recording
+    '-y',
+    video_audio        # Output audio file
+]
+
+print(subprocess.run(command, capture_output=True))
+
+audio_video, _ = librosa.load('video_audio.wav', mono=True)
+ambisonics, fs = librosa.load('ambisonics.wav', mono=False)
+# resample audio_video if needed
+if _ != fs:
+    audio_video = librosa.resample(audio_video, orig_sr=_, target_sr=fs)
+
+
+# filter the audio tracks with a low pass filter
+sos = signal.butter(10, fs//4, btype='low', analog=False, fs=fs, output='sos')
+audio_video_filtered = signal.sosfilt(sos, audio_video)
+w_filtered = signal.sosfilt(sos, ambisonics[0])
+
+# comupute cross-correlation between audio tracks
+correlation = signal.correlate(audio_video_filtered, w_filtered, mode='full')
+
+# find the time lag between the two audio tracks
+lags = signal.correlation_lags(audio_video_filtered.size, w_filtered.size, mode='full')
+time_lag = lags[np.argmax(correlation)]
+
+# calculate the time lag
+print(time_lag)
+
+# align the ambix audio with the video audio and trim the excess
+ambisonics_trimmed = np.roll(ambisonics, time_lag, axis=1)[:, 0:audio_video.size]
+
+# plot 
+fig, ax = plt.subplots(2,1,sharex=True)
+ax[0].plot(audio_video)
+ax[1].plot(ambisonics_trimmed[0])
+plt.show()
+
+io.wavfile.write(trimmed_ambix, fs, ambisonics_trimmed.T.astype(np.float32))
+
+# Command to replace audio track
+command = [
+    'ffmpeg',
+    '-i', input_video,       # Input video file
+    '-i', trimmed_ambix,   # Input new audio file
+    '-c:v', 'copy',         # Copy the video stream as-is
+    '-c:a', 'aac',          # Encode the audio to AAC format
+    '-map', '0:v:0',        # Use the video stream from the first input
+    '-map', '1:a:0',        # Use the audio stream from the second input
+    output_video            # Output file
+]
+
+print(subprocess.run(command, capture_output=True))
