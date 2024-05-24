@@ -16,71 +16,87 @@ import matplotlib.pyplot as plt
 from scipy import signal, io
 import librosa
 import subprocess
-
-input_video = 'video.mp4'
-input_ambix = 'ambisonics.wav'
-output_video = 'output.mov'
-
-# temporary file - no need to edit
-video_audio = 'video_audio.wav'
-trimmed_ambix = 'trimmed_ambix.wav'
-
-# Command to extract audio track
-command = [
-    'ffmpeg',
-    '-i', input_video,        # Input video file
-    '-q:a', '0',             # Set audio quality to highest
-    '-map', '0:a:0',         # Select the audio stream from the input file
-    '-vn',                   # Disable the video recording
-    '-y',
-    video_audio        # Output audio file
-]
-
-print(subprocess.run(command, capture_output=True))
-
-audio_video, _ = librosa.load('video_audio.wav', mono=True)
-ambisonics, fs = librosa.load('ambisonics.wav', mono=False)
-# resample audio_video if needed
-if _ != fs:
-    audio_video = librosa.resample(audio_video, orig_sr=_, target_sr=fs)
+import argparse
 
 
-# filter the audio tracks with a low pass filter
-sos = signal.butter(10, fs//4, btype='low', analog=False, fs=fs, output='sos')
-audio_video_filtered = signal.sosfilt(sos, audio_video)
-w_filtered = signal.sosfilt(sos, ambisonics[0])
+def main(input_video, input_ambix, output_video):
 
-# comupute cross-correlation between audio tracks
-correlation = signal.correlate(audio_video_filtered, w_filtered, mode='full')
+    # temporary file - no need to edit
+    video_audio = 'video_audio.wav'
+    trimmed_ambix = 'trimmed_ambix.wav'
 
-# find the time lag between the two audio tracks
-lags = signal.correlation_lags(audio_video_filtered.size, w_filtered.size, mode='full')
-time_lag = lags[np.argmax(correlation)]
+    # Command to extract audio track
+    command = [
+        'ffmpeg',
+        '-i', input_video,        # Input video file
+        '-q:a', '0',             # Set audio quality to highest
+        '-map', '0:a:0',         # Select the audio stream from the input file
+        '-vn',                   # Disable the video recording
+        '-y',
+        video_audio        # Output audio file
+    ]
 
-# calculate the time lag
-print(time_lag)
+    print(subprocess.run(command, capture_output=True))
 
-# align the ambix audio with the video audio and trim the excess
-ambisonics_trimmed = np.roll(ambisonics, time_lag, axis=1)[:, 0:audio_video.size]
+    audio_video, _ = librosa.load(video_audio, mono=True)
+    ambisonics, fs = librosa.load(input_ambix, mono=False)
+    # resample audio_video if needed
+    if _ != fs:
+        audio_video = librosa.resample(audio_video, orig_sr=_, target_sr=fs)
 
-# plot 
-fig, ax = plt.subplots(2,1,sharex=True)
-ax[0].plot(audio_video)
-ax[1].plot(ambisonics_trimmed[0])
-plt.show()
 
-io.wavfile.write(trimmed_ambix, fs, ambisonics_trimmed.T.astype(np.float32))
+    # filter the audio tracks with a low pass filter
+    sos = signal.butter(10, fs//4, btype='low', analog=False, fs=fs, output='sos')
+    audio_video_filtered = signal.sosfilt(sos, audio_video)
+    w_filtered = signal.sosfilt(sos, ambisonics[0])
 
-# Command to replace audio track
-command = [
-    'ffmpeg',
-    '-i', input_video,       # Input video file
-    '-i', trimmed_ambix,   # Input new audio file
-    '-c:v', 'copy',         # Copy the video stream as-is
-    '-c:a', 'aac',          # Encode the audio to AAC format
-    '-map', '0:v:0',        # Use the video stream from the first input
-    '-map', '1:a:0',        # Use the audio stream from the second input
-    output_video            # Output file
-]
+    # comupute cross-correlation between audio tracks
+    correlation = signal.correlate(audio_video_filtered, w_filtered, mode='full')
 
-print(subprocess.run(command, capture_output=True))
+    # find the time lag between the two audio tracks
+    lags = signal.correlation_lags(audio_video_filtered.size, w_filtered.size, mode='full')
+    time_lag = lags[np.argmax(correlation)]
+
+    # calculate the time lag
+    print(time_lag)
+
+    # align the ambix audio with the video audio and trim the excess
+    ambisonics_trimmed = np.roll(ambisonics, time_lag, axis=1)[:, 0:audio_video.size]
+
+    # plot 
+    fig, ax = plt.subplots(2,1,sharex=True)
+    ax[0].plot(audio_video)
+    ax[1].plot(ambisonics_trimmed[0])
+    plt.show()
+
+    io.wavfile.write(trimmed_ambix, fs, ambisonics_trimmed.T.astype(np.float32))
+
+    # Command to replace audio track
+    command = [
+        'ffmpeg',
+        '-i', input_video,       # Input video file
+        '-i', trimmed_ambix,   # Input new audio file
+        '-c:v', 'copy',         # Copy the video stream as-is
+        '-c:a', 'aac',          # Encode the audio to AAC format
+        '-map', '0:v:0',        # Use the video stream from the first input
+        '-map', '1:a:0',        # Use the audio stream from the second input
+        output_video            # Output file
+    ]
+
+    print(subprocess.run(command, capture_output=True))
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Provide input video and audio and the output video file name ')
+    parser.add_argument('-v', '--video', type=str, required=True,help='Path to the input video file')
+    parser.add_argument('-a', '--audio', type=str, required=True,help='Path to the input audio file')
+    parser.add_argument('-o', '--output', type=str, required=True,help='Path to the output file. Requires .mov extension!')
+
+    args = parser.parse_args()
+
+    input_video = args.video
+    input_ambix = args.audio
+    output_video = args.output
+
+    main(input_video, input_ambix, output_video)
+    exit()
