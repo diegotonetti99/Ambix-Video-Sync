@@ -17,6 +17,7 @@ from scipy import signal, io
 import librosa
 import subprocess
 import argparse
+import os
 
 
 def main(input_video, input_ambix, output_video):
@@ -24,6 +25,7 @@ def main(input_video, input_ambix, output_video):
     # temporary file - no need to edit
     video_audio = 'video_audio.wav'
     trimmed_ambix = 'trimmed_ambix.wav'
+    merged_video = 'merged.mov'
 
     # Command to extract audio track
     command = [
@@ -36,6 +38,7 @@ def main(input_video, input_ambix, output_video):
         video_audio        # Output audio file
     ]
 
+    # run the ffmpeg command and print the output
     print(subprocess.run(command, capture_output=True))
 
     audio_video, _ = librosa.load(video_audio, mono=True)
@@ -64,12 +67,13 @@ def main(input_video, input_ambix, output_video):
     ambisonics_trimmed = np.roll(ambisonics, time_lag, axis=1)[:, 0:audio_video.size]
 
     # plot 
-    fig, ax = plt.subplots(2,1,sharex=True)
+    _, ax = plt.subplots(2,1,sharex=True)
     ax[0].plot(audio_video)
     ax[1].plot(ambisonics_trimmed[0])
     plt.show()
 
-    io.wavfile.write(trimmed_ambix, fs, ambisonics_trimmed.T.astype(np.float32))
+    # save the trimmed amibx audio
+    io.wavfile.write(trimmed_ambix, fs, ambisonics_trimmed.T)
 
     # Command to replace audio track
     command = [
@@ -80,10 +84,33 @@ def main(input_video, input_ambix, output_video):
         '-c:a', 'aac',          # Encode the audio to AAC format
         '-map', '0:v:0',        # Use the video stream from the first input
         '-map', '1:a:0',        # Use the audio stream from the second input
-        output_video            # Output file
+        '-y',
+        merged_video            # merged file
     ]
 
+    # run the ffmpeg command and print the output
     print(subprocess.run(command, capture_output=True))
+
+    print('Video and Audio merged!')
+
+    # use google spatial metadata injector to write metdatata for 360 + ambisonics
+    path = os.path.dirname(__file__)
+    command = [
+        'python2',
+        path+'/spatial-media/spatialmedia',
+        '-i',
+        '--stereo=none',         # Copy the video stream as-is
+        '--spatial-audio',          # Encode the audio to AAC format
+        merged_video,            # non metadata file
+        output_video            # output video
+    ]
+    print(subprocess.run(command, capture_output=True))
+    os.remove(merged_video)
+    os.remove(trimmed_ambix)
+    os.remove(video_audio)
+
+
+
 
 
 if __name__ == '__main__':
