@@ -96,7 +96,11 @@ def main(input_video, input_ambix, output_video):
     # use google spatial metadata injector to write metdatata for 360 + ambisonics
     path = os.path.dirname(__file__)
     command = [
-        'python2',
+        'conda',
+        'run',
+        '-n',
+        'ambix-py2',
+        'python',
         path+'/spatial-media/spatialmedia',
         '-i',
         '--stereo=none',         # Copy the video stream as-is
