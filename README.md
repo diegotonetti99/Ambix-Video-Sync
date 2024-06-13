@@ -17,3 +17,5 @@ Install all the dependencies with the command
 ~~~
 conda install -c conda-forge ffmpeg numpy matplotlib librosa
 ~~~
+## IMPORTANT
+Install a Python2 interpreter as the Google spatial metadata injector runs on Python2
