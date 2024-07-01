@@ -1,3 +1,10 @@
+# Ambix Video Sync
+This program automatically merges ambisonics audio and 360 video into a single file using FFmpeg and injects the required metadata with the Google spatial metadata injector.
+
+The audio alignment is done via a FFT cross correlation between the ambix audio and the video audio, it is important that the ambix audio is longer than the recorded video to make the alignment work.
+
+
+
 # Install
 Clone the repository and the submodule with the command
 ~~~
@@ -5,11 +12,11 @@ git clone --recurse-submodules https://github.com/diegotonetti99/Ambix-Video-Syn
 ~~~
 
 ## Anaconda
-This program relies on anaconda to manage all the python libraries and ffmpeg. Create a new virtual environment with the command (use this command only the first time)
+This program relies on Anaconda to manage all the Python libraries and FFmpeg. Create a new virtual environment with the command (use this command only the first time)
 ~~~
 conda create -n ambix
 ~~~
-then activate the enviroment with
+then activate the environment with
 ~~~
 conda activate ambix
 ~~~
