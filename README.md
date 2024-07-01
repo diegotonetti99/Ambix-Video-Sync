@@ -28,7 +28,9 @@ To merge Ambisonics audio and 360 Video run the command open the terminal **insi
 ~~~
 conda run -n ambix python main.py -v video.mp4 -a audio.wav -o output.mp4
 ~~~
-where video.mp4 is the recorded video, audio.wav is the ambisonics audio file and output.mov is the final merged video with ambisonics audio and injected VR metadata.
+where video.mp4 is the recorded video, audio.wav is the ambisonics audio file and output.mp4 is the final merged video with ambisonics audio and injected VR metadata.
+
+I prefer mp4 video format as output as both the suggested players recognize it.
 
 # Player
 On smartphone and PC, I suggest using [VLC](https://www.videolan.org/) as it supports AMBIX audio format.
