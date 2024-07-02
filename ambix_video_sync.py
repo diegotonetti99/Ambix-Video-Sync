@@ -19,14 +19,7 @@ import subprocess
 import argparse
 import os
 
-
-def main(input_video, input_ambix, output_video):
-
-    # temporary file - no need to edit
-    video_audio = 'video_audio.wav'
-    trimmed_ambix = 'trimmed_ambix.wav'
-    merged_video = 'merged.mov'
-
+def align(input_video, input_ambix, video_audio, trimmed_ambix):
     # Command to extract audio track
     command = [
         'ffmpeg',
@@ -66,15 +59,11 @@ def main(input_video, input_ambix, output_video):
     # align the ambix audio with the video audio and trim the excess
     ambisonics_trimmed = np.roll(ambisonics, time_lag, axis=1)[:, 0:audio_video.size]
 
-    # plot 
-    _, ax = plt.subplots(2,1,sharex=True)
-    ax[0].plot(audio_video)
-    ax[1].plot(ambisonics_trimmed[0])
-    plt.show()
-
     # save the trimmed amibx audio
     io.wavfile.write(trimmed_ambix, fs, ambisonics_trimmed.T)
+    return ambisonics_trimmed, audio_video
 
+def merge(input_video, trimmed_ambix, merged_video):
     # Command to replace audio track
     command = [
         'ffmpeg',
@@ -93,6 +82,7 @@ def main(input_video, input_ambix, output_video):
 
     print('Video and Audio merged!')
 
+def inject(merged_video, output_video):
     # use google spatial metadata injector to write metdatata for 360 + ambisonics
     path = os.path.dirname(__file__)
     command = [
@@ -109,12 +99,33 @@ def main(input_video, input_ambix, output_video):
         output_video            # output video
     ]
     print(subprocess.run(command, capture_output=True))
+
+def clear(merged_video, trimmed_ambix, video_audio):
     os.remove(merged_video)
     os.remove(trimmed_ambix)
     os.remove(video_audio)
 
+def main(input_video, input_ambix, output_video):
 
+    # temporary file - no need to edit
+    video_audio = 'video_audio.wav'
+    trimmed_ambix = 'trimmed_ambix.wav'
+    merged_video = 'merged.mov'
 
+    # align the ambix audio with the video audio and trim the excess
+    ambisonics_trimmed, audio_video = align(input_video, input_ambix, video_audio, trimmed_ambix)
+
+    # plot 
+    _, ax = plt.subplots(2,1,sharex=True)
+    ax[0].plot(audio_video)
+    ax[1].plot(ambisonics_trimmed[0])
+    plt.show()
+
+    merge(input_video, trimmed_ambix, merged_video)
+
+    inject(merged_video, output_video)
+
+    clear(merged_video, trimmed_ambix, video_audio)    
 
 
 if __name__ == '__main__':

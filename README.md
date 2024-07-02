@@ -22,7 +22,7 @@ conda activate ambix
 ~~~
 Install all the dependencies with the command
 ~~~
-conda install -c conda-forge ffmpeg numpy matplotlib librosa scipy
+conda install -c conda-forge ffmpeg numpy matplotlib librosa scipy wxpython
 ~~~
 ## IMPORTANT
 Install a Python2 interpreter as the Google spatial metadata injector runs on Python2. To do this create a second environment with the command
@@ -31,9 +31,16 @@ conda create -n ambix-py2 python=2.7
 ~~~
 
 # Usage
-To merge Ambisonics audio and 360 Video run the command open the terminal **inside the main folder** of this repository
+## GUI
+To launch the GUI open the terminal **inside the main folder** of this repository and run the command
 ~~~
-conda run -n ambix python main.py -v video.mp4 -a audio.wav -o output.mp4
+./launch.sh
+~~~
+
+## Command line
+To merge Ambisonics audio and 360 Video open the terminal **inside the main folder** of this repository and run the command
+~~~
+conda run -n ambix python ambix_video_sync.py -v video.mp4 -a audio.wav -o output.mp4
 ~~~
 where video.mp4 is the recorded video, audio.wav is the ambisonics audio file and output.mp4 is the final merged video with ambisonics audio and injected VR metadata.
 
