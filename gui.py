@@ -27,6 +27,10 @@ class MyFrame(wx.Frame):
         self.audio_box = wx.TextCtrl(panel)
         hboxa.Add(self.audio_box, proportion=1, flag=wx.EXPAND | wx.ALL, border=10)
         vbox.Add(hboxa, flag=wx.EXPAND)
+        # checkbox to keep the trimmed ambix file
+        self.checkbox = wx.CheckBox(panel, label="Keep trimmed audio")
+        self.checkbox.SetValue(True)
+        hboxa.Add(self.checkbox, flag=wx.CENTER | wx.ALL, border=10)
 
         # IMPORT VIDEO BUTTON
         hboxv = wx.BoxSizer(wx.HORIZONTAL)
@@ -44,11 +48,13 @@ class MyFrame(wx.Frame):
         self.ax[1].set_title('Video')
         self.ax[1].set_xlabel('samples')
 
+    
         # Create a canvas to display the plot
         self.canvas = FigureCanvas(panel, -1, self.figure)
         self.toolbar = NavigationToolbar(self.canvas)
         vbox.Add(self.toolbar, flag=wx.LEFT | wx.TOP)
         vbox.Add(self.canvas, 1, flag=wx.LEFT | wx.TOP | wx.GROW)
+        self.canvas.draw()
 
         # EXPORt VIDEO BUTTON
         hboxe = wx.BoxSizer(wx.HORIZONTAL)
@@ -105,28 +111,38 @@ class MyFrame(wx.Frame):
             self.output_box.WriteText(pathname)
 
     def export_video(self, event):
-        # temporary file - no need to edit
-        video_audio = 'video_audio.wav'
-        trimmed_ambix = 'trimmed_ambix.wav'
-        merged_video = 'merged.mov'
 
         input_video = self.video_box.GetLineText(0)
         input_ambix = self.audio_box.GetLineText(0)
         output_video = self.output_box.GetLineText(0)
 
+        # temporary file - no need to edit
+        video_audio = input_video.replace('.mp4', '_audio.wav')
+        merged_video = input_video.replace('.mp4', '_merged.mp4')
+        trimmed_ambix = input_ambix.replace('.wav', '_trimmed.wav')
+
         # align the ambix audio with the video audio and trim the excess
         ambisonics_trimmed, audio_video_a = align(input_video, input_ambix, video_audio, trimmed_ambix)
 
-        # # plot 
+        # # plot
+        self.ax[0].cla()
+        self.ax[1].cla()
         self.ax[0].plot(ambisonics_trimmed[0])
         self.ax[1].plot(audio_video_a)
+        self.ax[0].set_title('Ambix')
+        self.ax[1].set_title('Video')
+        self.ax[1].set_xlabel('samples')
+
         self.canvas.draw()
 
         merge(input_video, trimmed_ambix, merged_video)
 
         inject(merged_video, output_video)
 
-        clear(merged_video, trimmed_ambix, video_audio)
+        if self.checkbox.IsChecked():
+            clear([merged_video, video_audio])
+        else:
+            clear([trimmed_ambix, merged_video, video_audio])
 
         dialog = wx.MessageDialog(self, "Export completed", "Info", wx.OK | wx.ICON_INFORMATION)
         dialog.ShowModal()

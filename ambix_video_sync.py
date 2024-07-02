@@ -34,8 +34,8 @@ def align(input_video, input_ambix, video_audio, trimmed_ambix):
     # run the ffmpeg command and print the output
     print(subprocess.run(command, capture_output=True))
 
-    audio_video, _ = librosa.load(video_audio, mono=True)
-    ambisonics, fs = librosa.load(input_ambix, mono=False)
+    audio_video, _ = librosa.load(video_audio, mono=True, sr=None)
+    ambisonics, fs = librosa.load(input_ambix, mono=False, sr=None)
     # resample audio_video if needed
     if _ != fs:
         audio_video = librosa.resample(audio_video, orig_sr=_, target_sr=fs)
@@ -100,10 +100,9 @@ def inject(merged_video, output_video):
     ]
     print(subprocess.run(command, capture_output=True))
 
-def clear(merged_video, trimmed_ambix, video_audio):
-    os.remove(merged_video)
-    os.remove(trimmed_ambix)
-    os.remove(video_audio)
+def clear(files):
+    for file in files:
+        os.remove(file)
 
 def main(input_video, input_ambix, output_video):
 
@@ -125,7 +124,7 @@ def main(input_video, input_ambix, output_video):
 
     inject(merged_video, output_video)
 
-    clear(merged_video, trimmed_ambix, video_audio)    
+    clear([merged_video, trimmed_ambix, video_audio])    
 
 
 if __name__ == '__main__':
