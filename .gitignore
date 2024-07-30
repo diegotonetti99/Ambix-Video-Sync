@@ -2,3 +2,4 @@
 *.WAV
 *.mov
 *.mp4
+__pycache__
