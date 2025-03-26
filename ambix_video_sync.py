@@ -47,7 +47,7 @@ def align(input_video, input_ambix, video_audio, trimmed_ambix):
     w_filtered = signal.sosfilt(sos, ambisonics[0])
 
     # comupute cross-correlation between audio tracks
-    correlation = signal.correlate(audio_video_filtered, w_filtered, mode='full')
+    correlation = signal.fftconvolve(audio_video_filtered, w_filtered, mode='full')
 
     # find the time lag between the two audio tracks
     lags = signal.correlation_lags(audio_video_filtered.size, w_filtered.size, mode='full')
