@@ -127,7 +127,7 @@ class MyFrame(wx.Frame):
         # # plot
         self.ax[0].cla()
         self.ax[1].cla()
-        self.ax[0].plot(ambisonics_trimmed[0])
+        self.ax[0].plot(ambisonics_trimmed[:,0])
         self.ax[1].plot(audio_video_a)
         self.ax[0].set_title('Ambix')
         self.ax[1].set_title('Video')
