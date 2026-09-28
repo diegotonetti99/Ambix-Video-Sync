@@ -34,20 +34,18 @@ def align(input_video, input_ambix, video_audio, trimmed_ambix):
     # run the ffmpeg command and print the output
     print(subprocess.run(command, capture_output=True))
     
-    # open audio with scipy
+    # librosa depends on deprecated aifc
+    #audio_video, _ = librosa.load(video_audio, mono=True, sr=None)
+    #ambisonics, fs = librosa.load(input_ambix, mono=False, sr=None)
+
     _, audio_video = io.wavfile.read(video_audio)
+    # get first channel only if multichannel
+    if audio_video.ndim>1:
+        audio_video = audio_video[0]
     
-    # convert to mono if stereo
-    if audio_video.ndim > 1:
-        audio_video = np.mean(audio_video, axis=1)
-    
+    # load ambisonics audio
     fs, ambisonics = io.wavfile.read(input_ambix)
     
-    print(audio_video.shape)
-    print(ambisonics.shape)
-
-    # audio_video, _ = librosa.load(video_audio, mono=True, sr=None)
-    # ambisonics, fs = librosa.load(input_ambix, mono=False, sr=None)
     # resample audio_video if needed
     if _ != fs:
         audio_video = librosa.resample(audio_video, orig_sr=_, target_sr=fs)
@@ -56,10 +54,10 @@ def align(input_video, input_ambix, video_audio, trimmed_ambix):
     # filter the audio tracks with a low pass filter
     sos = signal.butter(10, fs//4, btype='low', analog=False, fs=fs, output='sos')
     audio_video_filtered = signal.sosfilt(sos, audio_video)
-    w_filtered = signal.sosfilt(sos, ambisonics[:,0])
+    w_filtered = signal.sosfilt(sos, ambisonics[0])
 
-    # comupute cross-correlation between audio tracks  
-    correlation = signal.correlate(audio_video_filtered, w_filtered, mode='full', method='fft')
+    # comupute cross-correlation between audio tracks
+    correlation = signal.fftconvolve(audio_video_filtered, w_filtered, mode='full')
 
     # find the time lag between the two audio tracks
     lags = signal.correlation_lags(audio_video_filtered.size, w_filtered.size, mode='full')
@@ -69,7 +67,7 @@ def align(input_video, input_ambix, video_audio, trimmed_ambix):
     print(time_lag)
 
     # align the ambix audio with the video audio and trim the excess
-    ambisonics_trimmed = np.roll(ambisonics, time_lag, axis=0)[0:audio_video.size]
+    ambisonics_trimmed = np.roll(ambisonics, time_lag, axis=1)[:, 0:audio_video.size]
 
     # save the trimmed amibx audio
     io.wavfile.write(trimmed_ambix, fs, ambisonics_trimmed)
